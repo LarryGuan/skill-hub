@@ -309,6 +309,23 @@ cmd_unuse() {
 
 # ============ install ============
 
+_install_companion_skill() {
+  local skill_src="${HUB_ROOT}/skills/skill-hub"
+  local skill_link="${GLOBAL_SKILLS_DIR}/skill-hub"
+  [ -d "$skill_src" ] || return 0
+  [ -d "$GLOBAL_SKILLS_DIR" ] || return 0
+  local src_abs; src_abs=$(cd -P -- "$skill_src" && pwd)
+  if [ -L "$skill_link" ]; then
+    local cur_skill; cur_skill=$(resolve_link_safe "$skill_link")
+    if [ "$cur_skill" != "$src_abs" ]; then
+      rm -f -- "$skill_link" && ln -s -- "$src_abs" "$skill_link"
+    fi
+  elif [ ! -e "$skill_link" ]; then
+    ln -s -- "$src_abs" "$skill_link"
+  fi
+  ok "伴随 skill 已装入: $skill_link"
+}
+
 cmd_install() {
   local bin_dir="${HOME}/.local/bin"
   local target="${bin_dir}/skill-hub"
@@ -318,7 +335,8 @@ cmd_install() {
   if [ -L "$target" ]; then
     local cur; cur=$(resolve_link_safe "$target")
     if [ "$cur" = "$_SELF_ABS" ]; then
-      ok "已安装（同源）: $target"; return 0
+      ok "已安装（同源）: $target"
+      _install_companion_skill; return 0
     fi
     warn "已存在但指向: $cur"
     confirm "覆盖？" || { warn "已取消"; return 1; }
@@ -332,24 +350,7 @@ cmd_install() {
   ok "已安装: $target"
   ok "  → $_SELF_ABS"
 
-  # 安装伴随 skill
-  local skill_src="${HUB_ROOT}/skills/skill-hub"
-  local skill_link="${GLOBAL_SKILLS_DIR}/skill-hub"
-  if [ -d "$skill_src" ]; then
-    if [ -d "$GLOBAL_SKILLS_DIR" ]; then
-      if [ -L "$skill_link" ]; then
-        local cur_skill; cur_skill=$(resolve_link_safe "$skill_link")
-        local src_abs; src_abs=$(cd -P -- "$skill_src" && pwd)
-        if [ "$cur_skill" != "$src_abs" ]; then
-          rm -f -- "$skill_link" && ln -s -- "$src_abs" "$skill_link"
-        fi
-      elif [ ! -e "$skill_link" ]; then
-        local src_abs; src_abs=$(cd -P -- "$skill_src" && pwd)
-        ln -s -- "$src_abs" "$skill_link"
-      fi
-      ok "伴随 skill 已装入: $skill_link"
-    fi
-  fi
+  _install_companion_skill
 
   case ":${PATH}:" in
     *":${bin_dir}:"*) : ;;
