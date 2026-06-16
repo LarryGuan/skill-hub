@@ -332,6 +332,25 @@ cmd_install() {
   ok "已安装: $target"
   ok "  → $_SELF_ABS"
 
+  # 安装伴随 skill
+  local skill_src="${HUB_ROOT}/skills/skill-hub"
+  local skill_link="${GLOBAL_SKILLS_DIR}/skill-hub"
+  if [ -d "$skill_src" ]; then
+    if [ -d "$GLOBAL_SKILLS_DIR" ]; then
+      if [ -L "$skill_link" ]; then
+        local cur_skill; cur_skill=$(resolve_link_safe "$skill_link")
+        local src_abs; src_abs=$(cd -P -- "$skill_src" && pwd)
+        if [ "$cur_skill" != "$src_abs" ]; then
+          rm -f -- "$skill_link" && ln -s -- "$src_abs" "$skill_link"
+        fi
+      elif [ ! -e "$skill_link" ]; then
+        local src_abs; src_abs=$(cd -P -- "$skill_src" && pwd)
+        ln -s -- "$src_abs" "$skill_link"
+      fi
+      ok "伴随 skill 已装入: $skill_link"
+    fi
+  fi
+
   case ":${PATH}:" in
     *":${bin_dir}:"*) : ;;
     *)
